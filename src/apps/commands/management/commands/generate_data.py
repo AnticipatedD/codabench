@@ -1,3 +1,4 @@
+import os
 import random
 
 from django.contrib.auth import get_user_model
@@ -20,7 +21,7 @@ class Command(BaseCommand):
             '-n',
             '--no-admin',
             action='store_true',
-            help='Do not create a superuser w/ username "admin"')
+            help='Do not create a superuser')
         parser.add_argument(
             '-s',
             '--size',
@@ -31,15 +32,19 @@ class Command(BaseCommand):
     def handle(self, *args, **kwargs):
         size = kwargs.get('size') or 3
         no_admin = kwargs.get('no_admin')
-        print(f'Creating data of size {size} {"without an admin account." if no_admin else "with an admin account."}')
+        
+        admin_username = os.getenv('ADMIN_USERNAME', 'admin')
+        admin_password = os.getenv('ADMIN_PASSWORD', 'changeme')
+
+        print(f'Creating data of size {size} {"without an admin account." if no_admin else f"with admin account ({admin_username})."}')
         users = []
         for i in range(size):
             if i == 0 and not no_admin:
                 try:
-                    user = UserFactory(username='admin', password='admin', super_user=True)
+                    user = UserFactory(username=admin_username, password=admin_password, super_user=True)
                 except IntegrityError:
                     # admin user already exists
-                    user = User.objects.get(username='admin')
+                    user = User.objects.get(username=admin_username)
             else:
                 user = UserFactory()
             users.append(user)
@@ -55,5 +60,6 @@ class Command(BaseCommand):
                         pass
                 for i in range(size):
                     phase = PhaseFactory(competition=comp, index=i, tasks=[TaskFactory(created_by=user)])
+
                     for _ in range(size):
                         SubmissionFactory(phase=phase, owner=random.choice(users))
