@@ -83,10 +83,11 @@ dev = [
     "flake8==7.3.0",
     "pytest==9.1.1",
     "pytest-django==4.14.0",
+    "pytest-cov>=6.0.0",
 ]
+
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "settings.develop"  # Just "settings" since pytest will be running from src/
 pythonpath = [".", "src", "src/apps"]
 testpaths = ["src"]  # Tell pytest to look for tests in src/
-addopts = "-v --tb=short --reuse-db"
-
+addopts = "-v --tb=short --reuse-db --cov=src --cov-report=term-missing --cov-fail-under=60"
