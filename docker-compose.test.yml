@@ -1,28 +1,64 @@
-version: '3.8'
 services:
   db:
-    image: postgres:15-alpine
+    image: postgres:15
     environment:
-      POSTGRES_DB: codabench_test
+      POSTGRES_DB: postgres
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres_test_password
+      POSTGRES_PASSWORD: postgres
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 10
 
-  web:
-    build: .
-    command: python manage.py runserver 0.0.0.0:8000
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  rabbit:
+    image: rabbitmq:3-management
     environment:
-      - DB_HOST=db
-      - DB_NAME=codabench_test
-      - DB_USER=postgres
-      - DB_PASSWORD=postgres_test_password
-      - SECRET_KEY=test_secret_key_for_ci
-    ports:
-      - "8000:8000"
+      RABBITMQ_DEFAULT_USER: rabbit-username
+      RABBITMQ_DEFAULT_PASS: rabbit-password-you-should-change
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+
+  django:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: >
+      bash -c "python manage.py migrate --noinput &&
+               python manage.py runserver 0.0.0.0:8000"
+    environment:
+      DEBUG: "True"
+      SECRET_KEY: "test-secret-key-for-ci"
+      DB_HOST: db
+      DB_NAME: postgres
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      REDIS_URL: redis://redis:6379
+      BROKER_URL: amqp://rabbit-username:rabbit-password-you-should-change@rabbit:5672//
+      DJANGO_SETTINGS_MODULE: settings.develop
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+      rabbit:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health/"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+      start_period: 30s
