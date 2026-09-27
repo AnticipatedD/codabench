@@ -6,7 +6,7 @@ from celery import signals
 import dj_database_url
 from .logs_loguru import configure_logging
 from django.core.management.utils import get_random_secret_key
-import configobj
+from django.core.exceptions import ImproperlyConfigured
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -129,21 +129,30 @@ USE_L10N = True
 USE_TZ = True
 
 # =============================================================================
-# Secret key (generate one if none is given, otherwise use given key)
+# Secret key
 # =============================================================================
-# This is needed when the secret key is generated for the first time as it won't be loaded as an environment variable
-config = configobj.ConfigObj('.env')
-with open(".env", "a+") as f:
-    secret_key_count = 0
-    f.seek(0)
-    for x in f:
-        if x.strip().startswith("SECRET_KEY="):
-            secret_key_count = 1
-            SECRET_KEY = os.environ.get("SECRET_KEY", config['SECRET_KEY'])
-            break
-    if secret_key_count == 0:
+# Never write SECRET_KEY into .env at runtime.
+# Production must supply a real secret via environment variable.
+SECRET_KEY = os.environ.get("SECRET_KEY")
+
+# Insecure / placeholder values that should never be used when DEBUG=False
+_INSECURE_SECRET_KEYS = {
+    None,
+    "",
+    "django-insecure-change-me-in-production-environment",
+    "changeme",
+    "insecure",
+}
+
+if not SECRET_KEY or SECRET_KEY in _INSECURE_SECRET_KEYS:
+    if os.environ.get("DEBUG", "False").lower() == "true":
+        # Allow a temporary key only for local development
         SECRET_KEY = get_random_secret_key()
-        f.write(f"\nSECRET_KEY='{SECRET_KEY}'\n")
+    else:
+        raise ImproperlyConfigured(
+            "SECRET_KEY environment variable is missing or insecure. "
+            "Set a long random SECRET_KEY when DEBUG=False."
+        )
 
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
@@ -597,4 +606,4 @@ if EXTERNAL_COMPETITIONS_ENABLED:
     CELERY_BEAT_SCHEDULE['fetch_external_competitions'] = {
         'task': 'external_competitions.tasks.fetch_external_competitions',
         'schedule': timedelta(days=1),
-    }
+}
