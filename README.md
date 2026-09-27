@@ -44,6 +44,7 @@ This starts the test stack via `docker-compose.test.yml`, waits for the health e
 This software is released under the Apache License 2.0 (the "License"); you may not use the software except in compliance with the License. The text of the Apache License 2.0 can be found online at: [Apache License 2.0](http://www.opensource.org/licenses/apache2.0.php) 
 
 # Cite Codabench in your research
+```
 @article{codabench,
     title = {Codabench: Flexible, easy-to-use, and reproducible meta-benchmark platform},
     author = {Zhen Xu and Sergio Escalera and Adrien Pavão and Magali Richard and 
@@ -57,3 +58,4 @@ This software is released under the Apache License 2.0 (the "License"); you may 
     doi = {https://doi.org/10.1016/j.patter.2022.100543},
     url = {https://www.sciencedirect.com/science/article/pii/S2666389922001465}
 }
+```
