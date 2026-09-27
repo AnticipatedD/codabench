@@ -1,4 +1,6 @@
+import os
 import random
+import secrets
 
 import factory
 from django.core.files.base import ContentFile
@@ -29,7 +31,8 @@ class UserFactory(DjangoModelFactory):
     _i = factory.Sequence(lambda n: n)
     username = factory.LazyAttribute(lambda o: f"{o._username}-{o._i}")
     email = factory.LazyAttribute(lambda o: f"{o.username}@example.com")
-    password = "test"
+    # Prefer TEST_USER_PASSWORD from the environment; fall back to a secure random value
+    password = os.environ.get("TEST_USER_PASSWORD") or secrets.token_urlsafe(16)
 
     date_joined = factory.Faker('date_time_between', start_date='-5y', end_date='now', tzinfo=UTC)
 
